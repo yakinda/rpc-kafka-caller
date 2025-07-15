@@ -5,12 +5,10 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.requestreply.ReplyingKafkaTemplate;
 import org.springframework.kafka.requestreply.RequestReplyFuture;
-import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -18,15 +16,11 @@ public class CallerService {
     @Autowired
     private ReplyingKafkaTemplate<String, String, String> template;
 
-    @Autowired
-    private String replyTopic;
-
     public String callRpc(String procedure, String args) {
         try {
             ProducerRecord<String, String> record = new ProducerRecord<>("requests", procedure + ":" + args);
-            record.headers().add(KafkaHeaders.REPLY_TOPIC, replyTopic.getBytes());
             RequestReplyFuture<String, String, String> future = template.sendAndReceive(record);
-            ConsumerRecord<String, String> response = future.get(10, TimeUnit.SECONDS);
+            ConsumerRecord<String, String> response = future.get();
             return response.value();
         } catch (Exception e) {
             return "error: " + e.getMessage();
